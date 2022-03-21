@@ -2,8 +2,11 @@ import shlex
 import subprocess
 
 
+imagenet_path = "PATH/TO/IMAGENET"
+
+
 for dataset in ["cifar", "imagenet"]:
-    data = dict(cifar="--cifar10", imagenet="--data PATH/TO/IMAGENET")[dataset]
+    data = dict(cifar="--cifar10", imagenet=f"--data {imagenet_path}")[dataset]
     n_blocks = dict(cifar=8, imagenet=11)[dataset]
     epochs = dict(cifar=300, imagenet=150)[dataset]
     lr_adjust = dict(cifar=70, imagenet=45)[dataset]
@@ -30,6 +33,7 @@ for dataset in ["cifar", "imagenet"]:
             arch = "-a 'Fw rho Std Pc N'"
 
         nonlins = dict(mod=[])
+        # Add experiments for Table 2.
         if dataset == "cifar":
             nonlins.update(cst=[("bias", 0.1)], ms=[("gain", 1.0), ("bias", 0.0)], mc=[], tanh=[])
 
@@ -42,4 +46,19 @@ for dataset in ["cifar", "imagenet"]:
 
             name = f"{dataset}-{nonlin}-skip-{skip}"
             to_run = f"python main_block.py {cmd} {arch} {Pc_sizes} {non_lin_str} --dir {name}"
-            subprocess.run(shlex.split(to_run), check=True, capture_output=True)
+            # subprocess.run(shlex.split(to_run), check=True, capture_output=True)
+
+
+# Experiments for Table 3.
+for non_linearity in ["relu", "abs", "thresh", "tanh", "powfixed"]:
+    if non_linearity == "thresh":
+        non_linearity_args = " --init-bias 1"
+    else:
+        non_linearity_args = ""
+
+
+    name = f"resnet18-nobias-{non_linearity}"
+    nonlin = f"--non-linearity {non_linearity}{non_linearity_args}"
+    to_run = f"python standard_arch.py --arch resnet18-custom --no-bias {nonlin} --dir {name} {imagenet_path}"
+    print(to_run)
+    # subprocess.run(shlex.split(to_run), check=True, capture_output=True)
